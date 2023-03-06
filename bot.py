@@ -3,7 +3,10 @@ import aiohttp
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
-from db_sql import get_message, save_message, clean_message, creat_db, get_config, check_gift, add_gift, check_client
+from db_sql import get_message, save_message, clean_message, creat_db, get_config, add_gift, check_client
+import os
+from stt import STT
+
 
 setting = get_config()
 
@@ -38,6 +41,7 @@ async def ask(text, id_user):
 
 bot = Bot(setting['bot_token']) #Telegram bot token
 dp = Dispatcher(bot)
+stt = STT()
 
 @dp.message_handler(commands=['clean'])
 async def see_client(message: types.Message):
@@ -65,11 +69,33 @@ async def see_client(message: types.Message):
 В целом, я стараюсь быть полезной и помочь вам найти информацию и получить поддержку в различных сферах."""
         
     await message.answer(text)
-    
 
+@dp.message_handler(content_types=[types.ContentType.VOICE])
+async def get_voice(msg: types.Message):
+    file_id = msg.voice.file_id
+    file = await bot.get_file(file_id)
+    file_path = file.file_path
+    file_save = f'voice\\{file_id}.oga'
+    await bot.download_file(file_path, destination=file_save)
+    text = stt.audio_to_text(file_save)
+    if os.path.exists(file_save):
+        os.remove(file_save)
 
+    if not check_client(msg.chat.id):
+        add_gift(msg.chat.id)
+    await msg.answer('Ищу ответ')
+
+    answer = await ask(text, msg.chat.id)
+
+    if answer is None:
+        answer = 'Не получилось найти'
+
+    await msg.reply(answer)
+
+        
+        
 @dp.message_handler()
-async def send_curs(msg: types.Message):
+async def send_msg(msg: types.Message):
     if not check_client(msg.chat.id):
         add_gift(msg.chat.id)
     
