@@ -36,7 +36,11 @@ class STT:
         """
         self.model_path = model_path if model_path else STT.default_init["model_path"]
         self.sample_rate = sample_rate if sample_rate else STT.default_init["sample_rate"]
-        self.ffmpeg_path = ffmpeg_path if ffmpeg_path else STT.default_init["ffmpeg_path"]
+        if os.name == 'nt':
+            self.ffmpeg_path = ffmpeg_path if ffmpeg_path else STT.default_init["ffmpeg_path"]
+        else:
+            self.ffmpeg_path = "ffmpeg"
+
 
         self._check_model()
 
@@ -53,18 +57,18 @@ class STT:
                 "Vosk: сохраните папку model в папку vosk\n"
                 "Скачайте модель по ссылке https://alphacephei.com/vosk/models"
                             )
+        if os.name == 'nt':
+            isffmpeg_here = False
+            for file in os.listdir(self.ffmpeg_path):
+                if file.startswith('ffmpeg'):
+                    isffmpeg_here = True
 
-        isffmpeg_here = False
-        for file in os.listdir(self.ffmpeg_path):
-            if file.startswith('ffmpeg'):
-                isffmpeg_here = True
-
-        if not isffmpeg_here:
-            raise Exception(
-                "Ffmpeg: сохраните ffmpeg.exe в папку ffmpeg\n"
-                "Скачайте ffmpeg.exe по ссылке https://ffmpeg.org/download.html"
-                            )
-        self.ffmpeg_path = self.ffmpeg_path + '/ffmpeg'
+            if not isffmpeg_here:
+                raise Exception(
+                    "Ffmpeg: сохраните ffmpeg.exe в папку ffmpeg\n"
+                    "Скачайте ffmpeg.exe по ссылке https://ffmpeg.org/download.html"
+                                )
+            self.ffmpeg_path = self.ffmpeg_path + '/ffmpeg'
 
     def audio_to_text(self, audio_file_name=None) -> str:
         """
