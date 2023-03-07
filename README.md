@@ -2,7 +2,7 @@
 telegaram bot for using GPTchat
 
 ### Технологии
-aiogram, torch, vosk, silero, num2words, ffmpeg
+aiogram, vosk, ffmpeg
 
 ### Команды
 - /start - Приветствие, появляется при первом старте бота
