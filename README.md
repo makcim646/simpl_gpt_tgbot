@@ -24,6 +24,8 @@ pip install -r requirements.txt
 - [vosk-model-small-ru-0.22 - 45 Мб](https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip "Модель vosk-model-small-ru-0.22 - 45 Мб") - хуже распознает, но быстрее и весит мало.
 
 *FFmpeg* - набор open-source библиотек для конвертирования аудио- и видео в различных форматах.
-Скачайте набор exe файлов с сайта [проекта](https://ffmpeg.org/download.html "FFmpeg - набор open-source библиотек для конвертирования аудио- и видео в различных форматах.") и поместите файл ffmpeg.exe в папки models/vosk.
+Скачайте набор exe файлов с сайта [проекта](https://ffmpeg.org/download.html "FFmpeg - набор open-source библиотек для конвертирования аудио- и видео в различных форматах.") и поместите файл ffmpeg.exe в папки models/vosk. Для linux нужно установить программу самостоятельно исползуя удобный вам менеджер пакетов. Например для Ubuntu apt install ffmpeg
+
+
 
 author stt.py https://github.com/tochilkinva/tg_bot_stt_tts
