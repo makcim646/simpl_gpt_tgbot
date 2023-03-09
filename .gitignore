@@ -152,3 +152,5 @@ cython_debug/
 #.idea/
 /setup.py
 /setting.ini
+/simpl_gpt_tgbot.zip
+/client.db

@@ -4,11 +4,12 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from db_sql import get_message, save_message, clean_message, creat_db, get_config, add_gift, check_client
-import os
-from stt import STT
-
+import subprocess
 
 setting = get_config()
+bot = Bot(setting['bot_token']) #Telegram bot token
+dp = Dispatcher(bot)
+
 
 async def ask(text, id_user):
 
@@ -38,10 +39,16 @@ async def ask(text, id_user):
             return resp['choices'][0]['message']['content']
 
 
+async def get_text(file_id):
+   url = f'http://127.0.0.1:8000/stt/{file_id}'
 
-bot = Bot(setting['bot_token']) #Telegram bot token
-dp = Dispatcher(bot)
-stt = STT()
+   async with aiohttp.ClientSession() as session:
+       async with session.get(url) as response:
+           if response.status != 200:
+               return None
+           resp = await response.json()
+           return resp['text']
+
 
 @dp.message_handler(commands=['clean'])
 async def see_client(message: types.Message):
@@ -72,17 +79,21 @@ async def see_client(message: types.Message):
 
 @dp.message_handler(content_types=[types.ContentType.VOICE])
 async def get_voice(msg: types.Message):
+    if not check_client(msg.chat.id):
+        add_gift(msg.chat.id)
+
     file_id = msg.voice.file_id
     file = await bot.get_file(file_id)
     file_path = file.file_path
     file_save = f'voice\\{file_id}.oga'
     await bot.download_file(file_path, destination=file_save)
-    text = stt.audio_to_text(file_save)
-    if os.path.exists(file_save):
-        os.remove(file_save)
+    print(file_id)
+    text = await get_text(file_id)
+    print(text)
+    #text = stt.audio_to_text(file_save)
+    #if os.path.exists(file_save):
+    #    os.remove(file_save)
 
-    if not check_client(msg.chat.id):
-        add_gift(msg.chat.id)
     await msg.answer('Ищу ответ')
 
     answer = await ask(text, msg.chat.id)
@@ -110,6 +121,6 @@ async def send_msg(msg: types.Message):
 
 
 if __name__ == '__main__':
+    proc = subprocess.Popen('python.exe stt_api.py', shell=True)
     creat_db()
     executor.start_polling(dp)
-    #asyncio.run(dp)

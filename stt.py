@@ -6,7 +6,6 @@ import json
 import os
 import subprocess
 from datetime import datetime
-
 from vosk import KaldiRecognizer, Model  # оффлайн-распознавание от Vosk
 
 
@@ -40,7 +39,6 @@ class STT:
             self.ffmpeg_path = ffmpeg_path if ffmpeg_path else STT.default_init["ffmpeg_path"]
         else:
             self.ffmpeg_path = "ffmpeg"
-
 
         self._check_model()
 
