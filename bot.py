@@ -4,7 +4,9 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from db_sql import get_message, save_message, clean_message, creat_db, get_config, add_gift, check_client
-import subprocess
+import os
+import ffmpeg
+import speech_recognition as sr
 
 setting = get_config()
 bot = Bot(setting['bot_token']) #Telegram bot token
@@ -37,17 +39,35 @@ async def ask(text, id_user):
             save_message(id_user, message)
 
             return resp['choices'][0]['message']['content']
+       
 
-
-async def get_text(file_id):
-   url = f'http://127.0.0.1:8000/stt/{file_id}'
-
-   async with aiohttp.ClientSession() as session:
-       async with session.get(url) as response:
-           if response.status != 200:
-               return None
-           resp = await response.json()
-           return resp['text']
+def convert(file_id):
+    if os.name == 'nt':
+        input_file = f"voice\\{file_id}.oga"
+        output_file = f"voice\\{file_id}.wav"
+    else:
+        input_file = f"voice/{file_id}.oga"
+        output_file = f"voice/{file_id}.wav"
+    
+    (ffmpeg
+    .input(input_file)
+    .output(output_file)
+    .overwrite_output()
+    .run()
+    )
+    os.remove(input_file)
+    return output_file
+    
+    
+def audio_to_text(file_id):
+    input_file = convert(file_id)
+    r = sr.Recognizer()
+    message = sr.AudioFile(input_file)
+    with message as source:
+        audio = r.record(source)
+    result = r.recognize_google(audio, language="ru-RU,en-US")
+    os.remove(input_file)
+    return result
 
 
 @dp.message_handler(commands=['clean'])
@@ -77,6 +97,7 @@ async def see_client(message: types.Message):
         
     await message.answer(text)
 
+
 @dp.message_handler(content_types=[types.ContentType.VOICE])
 async def get_voice(msg: types.Message):
     if not check_client(msg.chat.id):
@@ -85,25 +106,20 @@ async def get_voice(msg: types.Message):
     file_id = msg.voice.file_id
     file = await bot.get_file(file_id)
     file_path = file.file_path
-    file_save = f'voice\\{file_id}.oga'
+    if os.name == 'nt':
+        file_save = f'voice\\{file_id}.oga'
+    else:
+        file_save = f'voice/{file_id}.oga'
     await bot.download_file(file_path, destination=file_save)
-    print(file_id)
-    text = await get_text(file_id)
-    print(text)
-    #text = stt.audio_to_text(file_save)
-    #if os.path.exists(file_save):
-    #    os.remove(file_save)
-
-    await msg.answer('Ищу ответ')
-
+    
+    text = audio_to_text(file_id)
+    await msg.answer(f'Ищу ответ на вопрос: {text}')
     answer = await ask(text, msg.chat.id)
-
     if answer is None:
         answer = 'Не получилось найти'
 
     await msg.reply(answer)
 
-        
         
 @dp.message_handler()
 async def send_msg(msg: types.Message):
@@ -113,7 +129,6 @@ async def send_msg(msg: types.Message):
     await msg.answer('Ищу ответ')
 
     text = await ask(msg.text, msg.chat.id)
-
     if text == None:
         text = 'Не получилось найти'
 
@@ -121,6 +136,5 @@ async def send_msg(msg: types.Message):
 
 
 if __name__ == '__main__':
-    proc = subprocess.Popen('python.exe stt_api.py', shell=True)
     creat_db()
     executor.start_polling(dp)
