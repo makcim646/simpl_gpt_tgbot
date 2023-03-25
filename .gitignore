@@ -154,3 +154,9 @@ cython_debug/
 /setting.ini
 /simpl_gpt_tgbot.zip
 /client.db
+.idea/vcs.xml
+.idea/simpl_gpt_tgbot.iml
+.idea/modules.xml
+.idea/misc.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/.name

@@ -4,6 +4,8 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from db_sql import get_message, save_message, clean_message, creat_db, get_config, add_gift, check_client
+import aiogram.utils.markdown as fmt
+import re
 import os
 import ffmpeg
 import speech_recognition as sr
@@ -14,7 +16,7 @@ dp = Dispatcher(bot)
 
 
 async def ask(text, id_user):
-
+    # Замените YOUR_API_KEY на свой ключ
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -34,13 +36,22 @@ async def ask(text, id_user):
         async with session.post(url, headers=headers, json=json) as response:
             if response.status != 200:
                 return None
+
             resp = await response.json()
+            token_len = resp['usage']['total_tokens']
+            if token_len > 3300:
+                clean_message(id_user)
+                save_message(id_user, data[-3])
+                save_message(id_user, data[-2])
+                save_message(id_user, data[-1])
             message = resp['choices'][0]['message']
             save_message(id_user, message)
 
             return resp['choices'][0]['message']['content']
-       
 
+            
+
+        
 def convert(file_id):
     if os.name == 'nt':
         input_file = f"voice\\{file_id}.oga"
@@ -78,6 +89,16 @@ async def see_client(message: types.Message):
     else:
         await message.answer("Не удалось очистить историю")
         
+        
+@dp.message_handler(commands=['img'])
+async def see_client(message: types.Message):
+    await message.answer('генерирую картинку')
+    text = message.text.split('/img')[1].strip()
+    response = openai.Image.create(prompt=text, n=1, size="1024x1024")
+    image_url = response['data'][0]['url']
+
+    await message.answer(fmt.hide_link(image_url), parse_mode=types.ParseMode.HTML)
+        
 
 @dp.message_handler(commands=['start'])
 async def see_client(message: types.Message):
@@ -113,12 +134,23 @@ async def get_voice(msg: types.Message):
     await bot.download_file(file_path, destination=file_save)
     
     text = audio_to_text(file_id)
-    await msg.answer(f'Ищу ответ на вопрос: {text}')
-    answer = await ask(text, msg.chat.id)
-    if answer is None:
-        answer = 'Не получилось найти'
+    match = re.search(r"\b(с)?генерируй\b", text)
+    
+    if match:
+        st = match.end()
+        await msg.answer(text[st:])
+        response = openai.Image.create(prompt=text[st:], n=1, size="1024x1024")
+        image_url = response['data'][0]['url']
 
-    await msg.reply(answer)
+        await msg.answer(fmt.hide_link(image_url), parse_mode=types.ParseMode.HTML)
+    else:
+        print(text)
+        await msg.answer(f'Ищу ответ на вопрос: {text}')
+        answer = await ask(text, msg.chat.id)
+        if answer is None:
+            answer = 'Не получилось найти'
+
+        await msg.reply(answer)
 
         
 @dp.message_handler()
